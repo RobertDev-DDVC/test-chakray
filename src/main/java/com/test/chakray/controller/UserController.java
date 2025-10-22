@@ -1,7 +1,9 @@
 package com.test.chakray.controller;
 
 import com.test.chakray.dto.UserRequestDTO;
+import com.test.chakray.dto.UserResponseDTO;
 import com.test.chakray.dto.UserUpdateRequestDTO;
+import com.test.chakray.mapper.UserMapper;
 import com.test.chakray.model.User;
 import com.test.chakray.service.UserService;
 import jakarta.validation.Valid;
@@ -27,33 +29,36 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<User>> findAll(
+    public ResponseEntity<List<UserResponseDTO>> findAll(
             @RequestParam(required = false) String sortedBy,
             @RequestParam(required = false) String filter
     ) {
-        List<User> result = userService.findAllSortedAndFiltered(sortedBy, filter);
-        return ResponseEntity.ok(result);
+        var users = userService.findAllSortedAndFiltered(sortedBy, filter);
+        var resp = users.stream().map(UserMapper::toResponse).toList();
+        return ResponseEntity.ok(resp);
     }
 
     @GetMapping("/{id}")
-     public User get(
-        @PathVariable @Pattern(regexp = REGEX_UUID, message = "Invalid UUID format") String id
-    ) {
-        return userService.get(UUID.fromString(id));
+    public ResponseEntity<UserResponseDTO> get(@PathVariable UUID id) {
+        var u = userService.get(id);
+        return ResponseEntity.ok(UserMapper.toResponse(u));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public User create(@Valid @RequestBody UserRequestDTO req) {
-        return userService.create(req);
+    public ResponseEntity<UserResponseDTO> create(@Valid @RequestBody UserRequestDTO req) {
+        var created = userService.create(req);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(UserMapper.toResponse(created));
     }
 
     @PatchMapping("/{id}")
-    public User update(
+    public ResponseEntity<UserResponseDTO> update(
             @PathVariable @Pattern(regexp = REGEX_UUID, message = "Invalid UUID format") String id,
             @Valid @RequestBody UserUpdateRequestDTO req
     ) {
-        return userService.update(UUID.fromString(id), req);
+        var u = userService.update(UUID.fromString(id), req);
+        return ResponseEntity.ok(UserMapper.toResponse(u));
     }
 
     @DeleteMapping("/{id}")

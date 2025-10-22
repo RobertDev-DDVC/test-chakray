@@ -1,10 +1,12 @@
 package com.test.chakray.service;
 
 import com.test.chakray.dto.*;
+import com.test.chakray.exception.InvalidCredentialsException;
 import com.test.chakray.exception.NotFoundException;
 import com.test.chakray.exception.TaxIdAlreadyExistsException;
 import com.test.chakray.model.Address;
 import com.test.chakray.model.User;
+import com.test.chakray.security.PasswordCipher;
 import com.test.chakray.utils.UserJsonStorage;
 import org.springframework.stereotype.Service;
 
@@ -22,12 +24,31 @@ import java.util.stream.Stream;
 @Service
 public class UserService {
     private final UserJsonStorage userStorage;
+    private final PasswordCipher cipher;
     private final AtomicInteger addressSeq;
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
 
-    public UserService(UserJsonStorage storage) {
+    public UserService(UserJsonStorage storage, PasswordCipher cipher) {
         this.userStorage = storage;
+        this.cipher = cipher;
         this.addressSeq = new AtomicInteger(initAddressSeq(userStorage.loadUsers()));
+    }
+
+    public User login(String taxId, String passwordPlain) {
+        if (taxId == null || taxId.isBlank() || passwordPlain == null) {
+            throw new InvalidCredentialsException("Invalid credentials");
+        }
+        List<User> users = userStorage.loadUsers();
+        User found = users.stream()
+                .filter(u -> u.getTaxId() != null && u.getTaxId().equalsIgnoreCase(taxId))
+                .findFirst()
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid credentials"));
+
+        String decrypted = cipher.decrypt(found.getPassword());
+        if (!passwordPlain.equals(decrypted)) {
+            throw new InvalidCredentialsException("Invalid credentials");
+        }
+        return found;
     }
 
     public List<User> findAllSortedAndFiltered(String sortedBy, String filter) {
@@ -45,102 +66,6 @@ public class UserService {
         }
 
         return result;
-    }
-
-    private Stream<User> applyFilter(Stream<User> stream, String filter) {
-        if (filter == null || filter.isBlank()) {
-            throw new IllegalArgumentException("Filter must not be empty");
-        }
-
-        // Acepta `+` o espacios entre field, op y value
-        Pattern pat = Pattern.compile("^\\s*(\\S+)\\s*(?:\\+|\\s)\\s*(\\S+)\\s*(?:\\+|\\s)\\s*(.+)\\s*$");
-        Matcher m = pat.matcher(filter);
-        if (!m.matches()) {
-            throw new IllegalArgumentException("Invalid filter format. Use field+op+value");
-        }
-
-        String field = normalizeField(m.group(1));          // email|id|name|phone|tax_id|created_at
-        String op    = m.group(2).toLowerCase(Locale.ROOT); // co|eq|sw|ew
-        String value = m.group(3);                           // puede contener '+' o espacios
-
-        final String normValue = normalizeForField(field, value);
-
-        Predicate<User> predicate = switch (op) {
-            case "co" -> u -> getFieldAsComparableString(u, field).contains(normValue);
-            case "eq" -> u -> getFieldAsComparableString(u, field).equals(normValue);
-            case "sw" -> u -> getFieldAsComparableString(u, field).startsWith(normValue);
-            case "ew" -> u -> getFieldAsComparableString(u, field).endsWith(normValue);
-            default -> throw new IllegalArgumentException("Invalid operator. Use one of: co, eq, sw, ew");
-        };
-
-        return stream.filter(predicate);
-    }
-
-    private String getFieldAsComparableString(User u, String field) {
-        switch (field) {
-            case "id" -> {
-                return u.getId() != null ? u.getId().toString().toLowerCase(Locale.ROOT) : "";
-            }
-            case "email" -> {
-                return safeLower(u.getEmail());
-            }
-            case "name" -> {
-                return safeLower(u.getName());
-            }
-            case "phone" -> {
-                return digitsOnly(u.getPhone());
-            }
-            case "taxId" -> {
-                return safeLower(u.getTaxId());
-            }
-            case "createdAt" -> {
-                if (u.getCreatedAt() == null) return "";
-                return u.getCreatedAt().format(FMT).toLowerCase(Locale.ROOT);
-            }
-            default -> throw new IllegalArgumentException("Invalid field in filter");
-        }
-    }
-
-    private String normalizeForField(String field, String value) {
-        if ("phone".equals(field)) {
-            return digitsOnly(value);
-        }
-        return safeLower(value);
-    }
-
-    private String safeLower(String s) {
-        return s == null ? "" : s.toLowerCase(Locale.ROOT);
-    }
-
-    private String digitsOnly(String s) {
-        return s == null ? "" : s.replaceAll("\\D", "");
-    }
-
-    private void sortInPlace(List<User> list, String sortedByRaw) {
-        String field = normalizeField(sortedByRaw);
-
-        Comparator<User> cmp = switch (field) {
-            case "id" -> Comparator.comparing(u -> Optional.ofNullable(u.getId()).map(UUID::toString).orElse(""));
-            case "email" -> Comparator.comparing(u -> safeLower(u.getEmail()));
-            case "name" -> Comparator.comparing(u -> safeLower(u.getName()));
-            case "phone" -> Comparator.comparing(u -> digitsOnly(u.getPhone()));
-            case "taxId" -> Comparator.comparing(u -> safeLower(u.getTaxId()));
-            case "createdAt" -> Comparator.comparing(u -> Optional.ofNullable(u.getCreatedAt()).orElse(LocalDateTime.MIN));
-            default -> throw new IllegalArgumentException("Invalid sortedBy field");
-        };
-
-        list.sort(cmp);
-    }
-
-    private String normalizeField(String input) {
-        if (input == null) return "";
-        String f = input.trim().toLowerCase(Locale.ROOT);
-        return switch (f) {
-            case "tax_id" -> "taxId";
-            case "created_at" -> "createdAt";
-            case "email", "id", "name", "phone" -> f;
-            default -> throw new IllegalArgumentException("Invalid field. Use: email|id|name|phone|tax_id|created_at");
-        };
     }
 
     public User get(UUID id) {
@@ -161,7 +86,12 @@ public class UserService {
         user.setEmail(req.getEmail());
         user.setName(req.getName());
         user.setPhone(req.getPhone());
-        user.setPassword(req.getPassword());
+
+        if (req.getPassword() == null || req.getPassword().isBlank()) {
+            throw new IllegalArgumentException("Password is required");
+        }
+        user.setPassword(cipher.encrypt(req.getPassword()));
+
         user.setTaxId(req.gettaxId());
         user.setCreatedAt(req.getcreatedAt() != null ? req.getcreatedAt() :
                 LocalDateTime.now(ZoneId.of("Indian/Antananarivo")));
@@ -196,14 +126,19 @@ public class UserService {
 
         if (req.getName() != null)
             existing.setName(req.getName());
+
         if (req.getPhone() != null)
             existing.setPhone(req.getPhone());
-        if (req.getPassword() != null)
-            existing.setPassword(req.getPassword());
+
         if (req.gettaxId() != null)
             existing.setTaxId(req.gettaxId());
+
         if (req.getcreatedAt() != null)
             existing.setCreatedAt(req.getcreatedAt());
+
+        if (req.getPassword() != null && !req.getPassword().isBlank()) {
+            existing.setPassword(cipher.encrypt(req.getPassword()));
+        }
 
         if (req.getAddresses() != null) {
             existing.setAddresses(mapAddresses(req.getAddresses(), existing.getAddresses()));
@@ -295,5 +230,101 @@ public class UserService {
                 && req.gettaxId() == null
                 && req.getcreatedAt() == null
                 && req.getAddresses() == null;
+    }
+
+    private Stream<User> applyFilter(Stream<User> stream, String filter) {
+        if (filter == null || filter.isBlank()) {
+            throw new IllegalArgumentException("Filter must not be empty");
+        }
+
+        // para aceptar `+` o espacios entre el campo, op y value
+        Pattern pat = Pattern.compile("^\\s*(\\S+)\\s*(?:\\+|\\s)\\s*(\\S+)\\s*(?:\\+|\\s)\\s*(.+)\\s*$");
+        Matcher m = pat.matcher(filter);
+        if (!m.matches()) {
+            throw new IllegalArgumentException("Invalid filter format. Use field+op+value");
+        }
+
+        String field = normalizeField(m.group(1));          // email|id|name|phone|tax_id|created_at
+        String op    = m.group(2).toLowerCase(Locale.ROOT); // co|eq|sw|ew
+        String value = m.group(3);                           // puede contener '+' o espacios
+
+        final String normValue = normalizeForField(field, value);
+
+        Predicate<User> predicate = switch (op) {
+            case "co" -> u -> getFieldAsComparableString(u, field).contains(normValue);
+            case "eq" -> u -> getFieldAsComparableString(u, field).equals(normValue);
+            case "sw" -> u -> getFieldAsComparableString(u, field).startsWith(normValue);
+            case "ew" -> u -> getFieldAsComparableString(u, field).endsWith(normValue);
+            default -> throw new IllegalArgumentException("Invalid operator. Use one of: co, eq, sw, ew");
+        };
+
+        return stream.filter(predicate);
+    }
+
+    private String getFieldAsComparableString(User u, String field) {
+        switch (field) {
+            case "id" -> {
+                return u.getId() != null ? u.getId().toString().toLowerCase(Locale.ROOT) : "";
+            }
+            case "email" -> {
+                return safeLower(u.getEmail());
+            }
+            case "name" -> {
+                return safeLower(u.getName());
+            }
+            case "phone" -> {
+                return digitsOnly(u.getPhone());
+            }
+            case "taxId" -> {
+                return safeLower(u.getTaxId());
+            }
+            case "createdAt" -> {
+                if (u.getCreatedAt() == null) return "";
+                return u.getCreatedAt().format(FMT).toLowerCase(Locale.ROOT);
+            }
+            default -> throw new IllegalArgumentException("Invalid field in filter");
+        }
+    }
+
+    private String normalizeForField(String field, String value) {
+        if ("phone".equals(field)) {
+            return digitsOnly(value);
+        }
+        return safeLower(value);
+    }
+
+    private String safeLower(String s) {
+        return s == null ? "" : s.toLowerCase(Locale.ROOT);
+    }
+
+    private String digitsOnly(String s) {
+        return s == null ? "" : s.replaceAll("\\D", "");
+    }
+
+    private void sortInPlace(List<User> list, String sortedByRaw) {
+        String field = normalizeField(sortedByRaw);
+
+        Comparator<User> cmp = switch (field) {
+            case "id" -> Comparator.comparing(u -> Optional.ofNullable(u.getId()).map(UUID::toString).orElse(""));
+            case "email" -> Comparator.comparing(u -> safeLower(u.getEmail()));
+            case "name" -> Comparator.comparing(u -> safeLower(u.getName()));
+            case "phone" -> Comparator.comparing(u -> digitsOnly(u.getPhone()));
+            case "taxId" -> Comparator.comparing(u -> safeLower(u.getTaxId()));
+            case "createdAt" -> Comparator.comparing(u -> Optional.ofNullable(u.getCreatedAt()).orElse(LocalDateTime.MIN));
+            default -> throw new IllegalArgumentException("Invalid sortedBy field");
+        };
+
+        list.sort(cmp);
+    }
+
+    private String normalizeField(String input) {
+        if (input == null) return "";
+        String f = input.trim().toLowerCase(Locale.ROOT);
+        return switch (f) {
+            case "tax_id" -> "taxId";
+            case "created_at" -> "createdAt";
+            case "email", "id", "name", "phone" -> f;
+            default -> throw new IllegalArgumentException("Invalid field. Use: email|id|name|phone|tax_id|created_at");
+        };
     }
 }
