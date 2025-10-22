@@ -1,0 +1,39 @@
+[ {
+  "id" : "e7f7f9a9-abc0-42f5-981a-ecb73df0d001",
+  "email" : "user1@mail.com",
+  "name" : "user1",
+  "phone" : "+1 55 555 555 55",
+  "password" : "7c4a8d09ca3762af61e59520943dc26494f8941b",
+  "addresses" : [ {
+    "id" : 1,
+    "name" : "workaddress",
+    "street" : "street No. 1",
+    "country_code" : "UK"
+  }, {
+    "id" : 2,
+    "name" : "homeaddress",
+    "street" : "street No. 2",
+    "country_code" : "AU"
+  } ],
+  "tax_id" : "AARR990101XXX",
+  "created_at" : "01-01-2026 00:00:00"
+}, {
+  "id" : "98fa441e-4012-4494-abfc-2e1f18910c72",
+  "email" : "roberto@gmail.com",
+  "name" : "Roberto Torres",
+  "phone" : "+52 7444018301",
+  "password" : "7c4a8d09ca3762af61e59520943dc26494f8941b",
+  "addresses" : [ {
+    "id" : 3,
+    "name" : "workaddress",
+    "street" : "Main Street No. 123",
+    "country_code" : "US"
+  }, {
+    "id" : 4,
+    "name" : "homeaddress",
+    "street" : "Second Avenue No. 45",
+    "country_code" : "MX"
+  } ],
+  "tax_id" : "RRTV100101XXX",
+  "created_at" : "21-10-2025 15:30:00"
+} ]
