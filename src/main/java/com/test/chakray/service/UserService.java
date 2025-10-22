@@ -2,12 +2,14 @@ package com.test.chakray.service;
 
 import com.test.chakray.dto.*;
 import com.test.chakray.exception.NotFoundException;
+import com.test.chakray.exception.TaxIdAlreadyExistsException;
 import com.test.chakray.model.Address;
 import com.test.chakray.model.User;
 import com.test.chakray.utils.UserJsonStorage;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,6 +39,7 @@ public class UserService {
         List<User> users = userStorage.loadUsers();
 
         ensureEmailUnique(users, req.getEmail(), null);
+        ensureTaxIdUnique(users, req.gettaxId(), null);
 
         User user = new User();
         user.setId(UUID.randomUUID());
@@ -45,7 +48,8 @@ public class UserService {
         user.setPhone(req.getPhone());
         user.setPassword(req.getPassword());
         user.setTaxId(req.gettaxId());
-        user.setCreatedAt(req.getcreatedAt() != null ? req.getcreatedAt() : LocalDateTime.now());
+        user.setCreatedAt(req.getcreatedAt() != null ? req.getcreatedAt() :
+                LocalDateTime.now(ZoneId.of("Indian/Antananarivo")));
         user.setAddresses(mapAddresses(req.getAddresses(), null));
 
         users.add(user);
@@ -68,6 +72,11 @@ public class UserService {
         if (req.getEmail() != null && !req.getEmail().equalsIgnoreCase(existing.getEmail())) {
             ensureEmailUnique(users, req.getEmail(), id);
             existing.setEmail(req.getEmail());
+        }
+
+        if (req.gettaxId() != null && !req.gettaxId().equalsIgnoreCase(existing.getTaxId())) {
+            ensureTaxIdUnique(users, req.gettaxId(), id);
+            existing.setTaxId(req.gettaxId());
         }
 
         if (req.getName() != null)
@@ -129,6 +138,17 @@ public class UserService {
                 && (ignoreId == null || !u.getId().equals(ignoreId)));
         if (exists)
             throw new IllegalArgumentException("Email already exists");
+    }
+
+    private void ensureTaxIdUnique(List<User> users, String taxId, UUID ignoreId) {
+        boolean exists = users.stream().anyMatch(u ->
+                u.getTaxId() != null
+                        && u.getTaxId().equalsIgnoreCase(taxId)
+                        && (ignoreId == null || !u.getId().equals(ignoreId))
+        );
+        if (exists) {
+            throw new TaxIdAlreadyExistsException("tax_id already exists");
+        }
     }
 
     private int indexOf(List<User> users, UUID id) {
