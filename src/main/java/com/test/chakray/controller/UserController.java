@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,8 +27,12 @@ public class UserController {
     }
 
     @GetMapping
-    public List<User> list() {
-        return userService.list();
+    public ResponseEntity<List<User>> findAll(
+            @RequestParam(required = false) String sortedBy,
+            @RequestParam(required = false) String filter
+    ) {
+        List<User> result = userService.findAllSortedAndFiltered(sortedBy, filter);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}")

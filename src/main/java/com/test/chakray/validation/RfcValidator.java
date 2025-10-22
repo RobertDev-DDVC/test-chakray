@@ -29,7 +29,6 @@ public class RfcValidator implements ConstraintValidator<RFC, String> {
         String mm = fecha.substring(2, 4);
         String dd = fecha.substring(4, 6);
 
-        // Interpreta YY como 19xx si > 50, si no 20xx (ajusta a tus reglas)
         int year = Integer.parseInt(yy);
         year += (year >= 50 ? 1900 : 2000);
 
