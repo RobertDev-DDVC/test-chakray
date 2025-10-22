@@ -2,6 +2,8 @@ package com.test.chakray.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.test.chakray.validation.Phone;
+import com.test.chakray.validation.RFC;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -19,12 +21,14 @@ public class UserRequestDTO {
     private String name;
 
     @NotBlank
+    @Phone(allowCountryCode = true)
     private String phone;
 
     @NotBlank
     private String password;
 
     @NotBlank
+    @RFC
     @JsonProperty("tax_id")
     private String taxId;
 
