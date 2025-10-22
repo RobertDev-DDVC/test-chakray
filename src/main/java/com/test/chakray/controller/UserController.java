@@ -4,11 +4,9 @@ import com.test.chakray.dto.UserRequestDTO;
 import com.test.chakray.dto.UserResponseDTO;
 import com.test.chakray.dto.UserUpdateRequestDTO;
 import com.test.chakray.mapper.UserMapper;
-import com.test.chakray.model.User;
 import com.test.chakray.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;

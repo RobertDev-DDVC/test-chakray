@@ -1,9 +1,28 @@
 [ {
-  "id" : "e7f7f9a9-abc0-42f5-981a-ecb73df0d001",
+  "id" : "cd4fbc1f-7f56-460d-90d6-7e162ce862f8",
+  "email" : "robot2@mail.com",
+  "name" : "UsernameTestRobot2",
+  "phone" : "+52 5551019001",
+  "password" : "k2p2jEKXkeHeunuu:AQ/Z9rOx1KM9mG5VfkVFtWAGSD8+/v4=",
+  "addresses" : [ {
+    "id" : 13,
+    "name" : "testDirection1",
+    "street" : "Main Street No. 123",
+    "country_code" : "US"
+  }, {
+    "id" : 14,
+    "name" : "testDirection2",
+    "street" : "Second Avenue No. 45",
+    "country_code" : "MX"
+  } ],
+  "tax_id" : "GOCA801231ABC",
+  "created_at" : "21-10-2025 15:30"
+}, {
+  "id" : "0603f787-9836-4c5c-a924-7e5c4ddccc9e",
   "email" : "user1@mail.com",
   "name" : "user1",
   "phone" : "+1 55 555 555 55",
-  "password" : "7c4a8d09ca3762af61e59520943dc26494f8941b",
+  "password" : "eG+fWN96gN9X8D4h:5SJJf+oiHhs24Qg0DM+DXWGrgRL32nxgkNgAP0T4eXuNScF0iZVmtAOyiuqLYFj0op+hDJbVoDU=",
   "addresses" : [ {
     "id" : 1,
     "name" : "workaddress",
@@ -16,24 +35,24 @@
     "country_code" : "AU"
   } ],
   "tax_id" : "AARR990101XXX",
-  "created_at" : "01-01-2026 00:00:00"
+  "created_at" : "01-01-2026 00:00"
 }, {
-  "id" : "98fa441e-4012-4494-abfc-2e1f18910c72",
-  "email" : "roberto@gmail.com",
-  "name" : "Roberto Torres",
-  "phone" : "+52 7444018301",
-  "password" : "7c4a8d09ca3762af61e59520943dc26494f8941b",
+  "id" : "ae96da7f-75b6-4952-a0c4-13719b4a9c0d",
+  "email" : "test1@mail.com",
+  "name" : "user1",
+  "phone" : "+1 55 555 555 55",
+  "password" : "Wm9XoE2FaI44ImeJ:fzDMdpY+XJelnUzjaeqSe+WGsOA/YYVczquMnuYZtJgfCKARupobbAbY/QIOsXQ5Gzh0VDMXPcs=",
   "addresses" : [ {
-    "id" : 3,
+    "id" : 1,
     "name" : "workaddress",
-    "street" : "Main Street No. 123",
-    "country_code" : "US"
+    "street" : "street No. 1",
+    "country_code" : "UK"
   }, {
-    "id" : 4,
+    "id" : 2,
     "name" : "homeaddress",
-    "street" : "Second Avenue No. 45",
-    "country_code" : "MX"
+    "street" : "street No. 2",
+    "country_code" : "AU"
   } ],
-  "tax_id" : "RRTV100101XXX",
-  "created_at" : "21-10-2025 15:30:00"
+  "tax_id" : "AARR990101XCX",
+  "created_at" : "23-10-2025 00:08"
 } ]
